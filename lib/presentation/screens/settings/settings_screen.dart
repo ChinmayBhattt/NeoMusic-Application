@@ -29,8 +29,20 @@ class SettingsScreen extends ConsumerWidget {
           children: [
             // Screen Title
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-              child: Text('Settings & Profile', style: AppTypography.displayMedium),
+              padding: const EdgeInsets.fromLTRB(16, 16, 20, 16),
+              child: Row(
+                children: [
+                  if (Navigator.canPop(context)) ...[
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary),
+                      tooltip: 'Back',
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                  Text('Settings & Profile', style: AppTypography.displayMedium),
+                ],
+              ),
             ),
 
             // Profile Header Card

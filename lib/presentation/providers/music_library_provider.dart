@@ -12,6 +12,12 @@ final musicRepositoryProvider = Provider<MusicRepository>((ref) {
   return MusicRepositoryImpl(StorageService.localStorage);
 });
 
+/// All Songs Provider
+final allSongsProvider = FutureProvider<List<Song>>((ref) async {
+  final repo = ref.watch(musicRepositoryProvider);
+  return repo.getAllSongs();
+});
+
 /// Home Featured Songs
 final featuredSongsProvider = FutureProvider<List<Song>>((ref) async {
   final repo = ref.watch(musicRepositoryProvider);

@@ -4,6 +4,7 @@ import 'package:my_app/domain/models/song.dart';
 import 'package:my_app/domain/models/artist.dart';
 import 'package:my_app/domain/models/album.dart';
 import 'package:my_app/domain/models/playlist.dart';
+import 'package:my_app/domain/models/app_notification.dart';
 import 'package:my_app/data/datasources/mock_music_data.dart';
 
 void main() {
@@ -119,6 +120,22 @@ void main() {
       expect(MockMusicData.artists.isNotEmpty, true);
       expect(MockMusicData.albums.isNotEmpty, true);
       expect(MockMusicData.featuredPlaylists.isNotEmpty, true);
+    });
+  });
+
+  group('Notifications Unit Tests', () {
+    test('AppNotification creates and updates read state', () {
+      const notif = AppNotification(
+        id: 'n1',
+        title: 'New Album',
+        message: 'Daft Punk Deluxe',
+        timeAgo: '10m ago',
+      );
+      expect(notif.isRead, false);
+
+      final readNotif = notif.copyWith(isRead: true);
+      expect(readNotif.isRead, true);
+      expect(readNotif.title, 'New Album');
     });
   });
 }

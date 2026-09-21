@@ -14,8 +14,11 @@ import '../../widgets/song_list_tile.dart';
 import '../../widgets/artist_circle_card.dart';
 import '../../widgets/playlist_card.dart';
 import '../../widgets/section_header.dart';
+import '../../widgets/notifications_sheet.dart';
+import '../../providers/notifications_provider.dart';
 import '../library/artist_detail_screen.dart';
 import '../library/playlist_detail_screen.dart';
+import '../settings/settings_screen.dart';
 
 /// Home Screen featuring personalized greeting, hero featured banner,
 /// trending tracks, popular artists, and curated playlists.
@@ -41,6 +44,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final featuredPlaylistsAsync = ref.watch(featuredPlaylistsProvider);
     final newReleasesAsync = ref.watch(newReleasesProvider);
     final recentlyPlayed = ref.watch(recentlyPlayedProvider);
+    final unreadNotifCount = ref.watch(unreadNotificationsCountProvider);
 
     final currentSong = ref.watch(currentSongStreamProvider).value ??
         ref.watch(audioPlayerServiceProvider).currentSong;
@@ -80,30 +84,85 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     // Notification & User Avatar
                     Row(
                       children: [
-                        Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceElevated,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.surfaceGlassBorder),
-                          ),
-                          child: const Icon(
-                            Icons.notifications_none_rounded,
-                            color: AppColors.textPrimary,
-                            size: 22,
+                        Tooltip(
+                          message: 'Notifications',
+                          child: InkWell(
+                            onTap: () => NotificationsSheet.show(context),
+                            borderRadius: BorderRadius.circular(21),
+                            child: Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceElevated,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: AppColors.surfaceGlassBorder),
+                              ),
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.notifications_none_rounded,
+                                    color: AppColors.textPrimary,
+                                    size: 22,
+                                  ),
+                                  if (unreadNotifCount > 0)
+                                    Positioned(
+                                      top: 8,
+                                      right: 8,
+                                      child: Container(
+                                        width: 9,
+                                        height: 9,
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primary,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: AppColors.primary.withValues(alpha: 0.6),
+                                              blurRadius: 6,
+                                              spreadRadius: 1,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 10),
-                        CircleAvatar(
-                          radius: 21,
-                          backgroundColor: AppColors.surfaceElevated,
-                          backgroundImage: user?.avatarUrl.isNotEmpty == true
-                              ? CachedNetworkImageProvider(user!.avatarUrl)
-                              : null,
-                          child: user?.avatarUrl.isEmpty ?? true
-                              ? const Icon(Icons.person, color: AppColors.textSecondary)
-                              : null,
+                        Tooltip(
+                          message: 'Profile & Settings',
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const SettingsScreen(),
+                                ),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(21),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppColors.primary.withValues(alpha: 0.4),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: CircleAvatar(
+                                radius: 20,
+                                backgroundColor: AppColors.surfaceElevated,
+                                backgroundImage: user?.avatarUrl.isNotEmpty == true
+                                    ? CachedNetworkImageProvider(user!.avatarUrl)
+                                    : null,
+                                child: user?.avatarUrl.isEmpty ?? true
+                                    ? const Icon(Icons.person, color: AppColors.textSecondary)
+                                    : null,
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
