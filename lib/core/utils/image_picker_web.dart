@@ -2,7 +2,11 @@
 import 'dart:async';
 import 'dart:html' as html;
 
-Future<String?> pickImagePlatform() async {
+Future<String?> pickImagePlatform({
+  int maxWidth = 800,
+  int maxHeight = 600,
+  double quality = 0.8,
+}) async {
   final completer = Completer<String?>();
   final uploadInput = html.FileUploadInputElement()..accept = 'image/*';
   uploadInput.click();
@@ -14,7 +18,41 @@ Future<String?> pickImagePlatform() async {
       final reader = html.FileReader();
       reader.readAsDataUrl(file);
       reader.onLoadEnd.listen((_) {
-        completer.complete(reader.result as String?);
+        final rawDataUrl = reader.result as String?;
+        if (rawDataUrl == null) {
+          completer.complete(null);
+          return;
+        }
+
+        // Compress and downscale via offscreen canvas to avoid localStorage quota limits
+        try {
+          final img = html.ImageElement();
+          img.src = rawDataUrl;
+          img.onLoad.listen((_) {
+            int width = img.width ?? 400;
+            int height = img.height ?? 400;
+
+            if (width > maxWidth || height > maxHeight) {
+              final double ratioW = maxWidth / width;
+              final double ratioH = maxHeight / height;
+              final double ratio = ratioW < ratioH ? ratioW : ratioH;
+              width = (width * ratio).round();
+              height = (height * ratio).round();
+            }
+
+            final canvas = html.CanvasElement(width: width, height: height);
+            final ctx = canvas.context2D;
+            ctx.drawImageScaled(img, 0, 0, width, height);
+
+            final compressed = canvas.toDataUrl('image/jpeg', quality);
+            completer.complete(compressed);
+          });
+          img.onError.listen((_) {
+            completer.complete(rawDataUrl);
+          });
+        } catch (_) {
+          completer.complete(rawDataUrl);
+        }
       });
       reader.onError.listen((_) {
         completer.complete(null);

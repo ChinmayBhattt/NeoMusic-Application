@@ -29,9 +29,24 @@ class _EditProfileDialogState extends ConsumerState<EditProfileDialog> {
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
 
-  String _currentAvatarUrl = '';
-  String _currentBannerUrl = '';
+  late String _currentAvatarUrl;
+  late String _currentBannerUrl;
   bool _isSaving = false;
+
+  static const List<String> _presetAvatars = [
+    'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&q=80',
+    'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=400&q=80',
+    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&q=80',
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80',
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&q=80',
+  ];
+
+  static const List<String> _presetBanners = [
+    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&q=80',
+    'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&q=80',
+    'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=1200&q=80',
+    'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1200&q=80',
+  ];
 
   @override
   void initState() {
@@ -40,9 +55,8 @@ class _EditProfileDialogState extends ConsumerState<EditProfileDialog> {
     _nameController = TextEditingController(text: user?.name ?? '');
     _emailController = TextEditingController(text: user?.email ?? '');
     _phoneController = TextEditingController(text: user?.phoneNumber ?? '');
-    _currentAvatarUrl = user?.avatarUrl ?? '';
-    _currentBannerUrl = user?.bannerUrl ??
-        'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&q=80';
+    _currentAvatarUrl = user?.avatarUrl ?? _presetAvatars.first;
+    _currentBannerUrl = user?.bannerUrl ?? _presetBanners.first;
   }
 
   @override
@@ -55,7 +69,11 @@ class _EditProfileDialogState extends ConsumerState<EditProfileDialog> {
 
   Future<void> _pickAvatar() async {
     try {
-      final dataUrl = await ProfileImagePicker.pickImage();
+      final dataUrl = await ProfileImagePicker.pickImage(
+        maxWidth: 400,
+        maxHeight: 400,
+        quality: 0.75,
+      );
       if (dataUrl != null && mounted) {
         setState(() {
           _currentAvatarUrl = dataUrl;
@@ -75,7 +93,11 @@ class _EditProfileDialogState extends ConsumerState<EditProfileDialog> {
 
   Future<void> _pickBanner() async {
     try {
-      final dataUrl = await ProfileImagePicker.pickImage();
+      final dataUrl = await ProfileImagePicker.pickImage(
+        maxWidth: 900,
+        maxHeight: 350,
+        quality: 0.75,
+      );
       if (dataUrl != null && mounted) {
         setState(() {
           _currentBannerUrl = dataUrl;
@@ -93,7 +115,7 @@ class _EditProfileDialogState extends ConsumerState<EditProfileDialog> {
     }
   }
 
-  void _saveProfile() {
+  Future<void> _saveProfile() async {
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final phone = _phoneController.text.trim();
@@ -120,38 +142,52 @@ class _EditProfileDialogState extends ConsumerState<EditProfileDialog> {
 
     setState(() => _isSaving = true);
 
-    final currentUser = widget.user ??
-        const UserProfile(
-          id: 'usr_neo_1',
-          name: 'Neo Explorer',
-          email: 'explorer@neomusic.stream',
-          avatarUrl: '',
+    try {
+      final currentUser = widget.user ??
+          const UserProfile(
+            id: 'usr_neo_1',
+            name: 'Neo Explorer',
+            email: 'explorer@neomusic.stream',
+            avatarUrl: '',
+          );
+
+      final updated = currentUser.copyWith(
+        name: name,
+        email: email,
+        phoneNumber: phone,
+        avatarUrl: _currentAvatarUrl,
+        bannerUrl: _currentBannerUrl,
+      );
+
+      await ref.read(authProvider.notifier).updateProfile(updated);
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.surfaceElevated,
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: AppColors.primary),
+                const SizedBox(width: 10),
+                Text('Profile updated successfully', style: AppTypography.bodyMedium),
+              ],
+            ),
+            duration: const Duration(seconds: 2),
+          ),
         );
-
-    final updated = currentUser.copyWith(
-      name: name,
-      email: email,
-      phoneNumber: phone,
-      avatarUrl: _currentAvatarUrl,
-      bannerUrl: _currentBannerUrl,
-    );
-
-    ref.read(authProvider.notifier).updateProfile(updated);
-
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: AppColors.surfaceElevated,
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle_rounded, color: AppColors.primary),
-            const SizedBox(width: 10),
-            Text('Profile updated successfully', style: AppTypography.bodyMedium),
-          ],
-        ),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.error,
+            content: Text('Failed to save profile: $e'),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -195,110 +231,196 @@ class _EditProfileDialogState extends ConsumerState<EditProfileDialog> {
 
               // Banner & Avatar Preview / Upload Section
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('PROFILE BANNER & PICTURE', style: AppTypography.labelSmall),
-                    const SizedBox(height: 10),
-                    Stack(
-                      clipBehavior: Clip.none,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Banner
-                        Container(
-                          height: 120,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceElevated,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.surfaceGlassBorder),
-                            image: bannerProvider != null
-                                ? DecorationImage(
-                                    image: bannerProvider,
-                                    fit: BoxFit.cover,
-                                  )
-                                : null,
+                        Text('PROFILE BANNER', style: AppTypography.labelSmall),
+                        Text(
+                          'Tap below or pick preset',
+                          style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // Banner Card
+                    Container(
+                      height: 120,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceElevated,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.surfaceGlassBorder),
+                        image: bannerProvider != null
+                            ? DecorationImage(
+                                image: bannerProvider,
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.6),
+                            ],
                           ),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withValues(alpha: 0.6),
-                                ],
-                              ),
-                            ),
-                            alignment: Alignment.topRight,
-                            padding: const EdgeInsets.all(8),
-                            child: ElevatedButton.icon(
-                              onPressed: _pickBanner,
-                              icon: const Icon(Icons.camera_enhance_rounded, size: 16),
-                              label: const Text('Change Banner', style: TextStyle(fontSize: 12)),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.black.withValues(alpha: 0.65),
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                  side: const BorderSide(color: AppColors.surfaceGlassBorder),
-                                ),
-                              ),
+                        ),
+                        alignment: Alignment.topRight,
+                        padding: const EdgeInsets.all(8),
+                        child: ElevatedButton.icon(
+                          onPressed: _pickBanner,
+                          icon: const Icon(Icons.upload_rounded, size: 16),
+                          label: const Text('Upload Banner', style: TextStyle(fontSize: 12)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black.withValues(alpha: 0.7),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              side: const BorderSide(color: AppColors.surfaceGlassBorder),
                             ),
                           ),
                         ),
+                      ),
+                    ),
 
-                        // Avatar overlapping banner
-                        Positioned(
-                          bottom: -24,
-                          left: 16,
-                          child: Stack(
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: AppColors.backgroundSecondary, width: 3.5),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.5),
-                                      blurRadius: 8,
-                                    ),
-                                  ],
+                    const SizedBox(height: 8),
+
+                    // Preset Banners Row
+                    SizedBox(
+                      height: 36,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _presetBanners.length,
+                        separatorBuilder: (context, index) => const SizedBox(width: 8),
+                        itemBuilder: (context, index) {
+                          final bUrl = _presetBanners[index];
+                          final isSelected = _currentBannerUrl == bUrl;
+                          return InkWell(
+                            onTap: () => setState(() => _currentBannerUrl = bUrl),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              width: 60,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isSelected ? AppColors.primary : AppColors.surfaceGlassBorder,
+                                  width: isSelected ? 2 : 1,
                                 ),
-                                child: CircleAvatar(
-                                  radius: 36,
-                                  backgroundColor: AppColors.surfaceElevated,
-                                  backgroundImage: avatarProvider,
-                                  child: avatarProvider == null
-                                      ? const Icon(Icons.person, size: 36, color: AppColors.textSecondary)
-                                      : null,
+                                image: DecorationImage(
+                                  image: NetworkImage(bUrl),
+                                  fit: BoxFit.cover,
                                 ),
                               ),
-                              Positioned(
-                                bottom: 0,
-                                right: 0,
-                                child: InkWell(
-                                  onTap: _pickAvatar,
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primary,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: AppColors.backgroundSecondary,
-                                        width: 2,
-                                      ),
-                                    ),
-                                    child: const Icon(
-                                      Icons.camera_alt_rounded,
-                                      size: 16,
-                                      color: Colors.black,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // Avatar Row & Upload
+                    Row(
+                      children: [
+                        Stack(
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: AppColors.primary, width: 2),
+                              ),
+                              child: CircleAvatar(
+                                radius: 34,
+                                backgroundColor: AppColors.surfaceElevated,
+                                backgroundImage: avatarProvider,
+                                child: avatarProvider == null
+                                    ? const Icon(Icons.person, size: 34, color: AppColors.textSecondary)
+                                    : null,
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: InkWell(
+                                onTap: _pickAvatar,
+                                borderRadius: BorderRadius.circular(16),
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppColors.backgroundSecondary,
+                                      width: 2,
                                     ),
                                   ),
+                                  child: const Icon(
+                                    Icons.camera_alt_rounded,
+                                    size: 14,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ElevatedButton.icon(
+                                onPressed: _pickAvatar,
+                                icon: const Icon(Icons.upload_rounded, size: 16),
+                                label: const Text('Upload Photo', style: TextStyle(fontSize: 12)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.surfaceElevated,
+                                  foregroundColor: AppColors.textPrimary,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    side: const BorderSide(color: AppColors.surfaceGlassBorder),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              // Preset Avatars Row
+                              SizedBox(
+                                height: 32,
+                                child: ListView.separated(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: _presetAvatars.length,
+                                  separatorBuilder: (context, index) => const SizedBox(width: 6),
+                                  itemBuilder: (context, index) {
+                                    final aUrl = _presetAvatars[index];
+                                    final isSelected = _currentAvatarUrl == aUrl;
+                                    return InkWell(
+                                      onTap: () => setState(() => _currentAvatarUrl = aUrl),
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: isSelected ? AppColors.primary : Colors.transparent,
+                                            width: 2,
+                                          ),
+                                        ),
+                                        child: CircleAvatar(
+                                          radius: 14,
+                                          backgroundImage: NetworkImage(aUrl),
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
                             ],
@@ -306,10 +428,11 @@ class _EditProfileDialogState extends ConsumerState<EditProfileDialog> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 36),
                   ],
                 ),
               ),
+
+              const SizedBox(height: 10),
 
               // Form fields
               Padding(
@@ -384,7 +507,7 @@ class _EditProfileDialogState extends ConsumerState<EditProfileDialog> {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               const Divider(height: 1, color: AppColors.divider),
 
               // Action Buttons

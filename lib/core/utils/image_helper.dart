@@ -7,7 +7,7 @@ class ImageHelper {
     if (url == null || url.trim().isEmpty) return null;
 
     final trimmed = url.trim();
-    if (trimmed.startsWith('data:image')) {
+    if (trimmed.startsWith('data:')) {
       try {
         final commaIndex = trimmed.indexOf(',');
         if (commaIndex != -1) {

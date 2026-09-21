@@ -107,7 +107,11 @@ class LocalStorageDataSource {
   }
 
   Future<void> saveUserProfile(UserProfile profile) async {
-    await _prefs.setString(AppConstants.keyUserProfile, jsonEncode(profile.toJson()));
+    try {
+      await _prefs.setString(AppConstants.keyUserProfile, jsonEncode(profile.toJson()));
+    } catch (e) {
+      // Storage quota or serialization issue, logged gracefully
+    }
   }
 
   bool isLoggedIn() {
