@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_gradients.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/image_helper.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../providers/music_library_provider.dart';
 import '../../providers/audio_player_provider.dart';
@@ -154,10 +155,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               child: CircleAvatar(
                                 radius: 20,
                                 backgroundColor: AppColors.surfaceElevated,
-                                backgroundImage: user?.avatarUrl.isNotEmpty == true
-                                    ? CachedNetworkImageProvider(user!.avatarUrl)
-                                    : null,
-                                child: user?.avatarUrl.isEmpty ?? true
+                                backgroundImage: ImageHelper.getImageProvider(user?.avatarUrl),
+                                child: ImageHelper.getImageProvider(user?.avatarUrl) == null
                                     ? const Icon(Icons.person, color: AppColors.textSecondary)
                                     : null,
                               ),

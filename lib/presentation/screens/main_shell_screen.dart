@@ -29,6 +29,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      resizeToAvoidBottomInset: false,
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,

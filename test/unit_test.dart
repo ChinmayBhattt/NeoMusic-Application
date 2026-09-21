@@ -5,6 +5,7 @@ import 'package:my_app/domain/models/artist.dart';
 import 'package:my_app/domain/models/album.dart';
 import 'package:my_app/domain/models/playlist.dart';
 import 'package:my_app/domain/models/app_notification.dart';
+import 'package:my_app/domain/models/user_profile.dart';
 import 'package:my_app/data/datasources/mock_music_data.dart';
 
 void main() {
@@ -136,6 +137,27 @@ void main() {
       final readNotif = notif.copyWith(isRead: true);
       expect(readNotif.isRead, true);
       expect(readNotif.title, 'New Album');
+    });
+
+    test('UserProfile handles banner and phone updates', () {
+      const user = UserProfile(
+        id: 'u1',
+        name: 'Alex',
+        email: 'alex@test.com',
+        avatarUrl: 'https://example.com/avatar.jpg',
+        bannerUrl: 'https://example.com/banner.jpg',
+        phoneNumber: '+1 555 123 4567',
+      );
+
+      expect(user.bannerUrl, 'https://example.com/banner.jpg');
+      expect(user.phoneNumber, '+1 555 123 4567');
+
+      final updated = user.copyWith(
+        email: 'newalex@test.com',
+        phoneNumber: '+1 555 987 6543',
+      );
+      expect(updated.email, 'newalex@test.com');
+      expect(updated.phoneNumber, '+1 555 987 6543');
     });
   });
 }

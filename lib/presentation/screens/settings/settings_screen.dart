@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/image_helper.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../auth/auth_dialog.dart';
+import 'edit_profile_dialog.dart';
 
 /// Settings & User Profile Screen
 class SettingsScreen extends ConsumerWidget {
@@ -45,70 +46,166 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
 
-            // Profile Header Card
+            // Profile Header Card with Banner
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-              padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: AppColors.surfaceGlassBorder),
               ),
-              child: Row(
+              clipBehavior: Clip.antiAlias,
+              child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: 32,
-                    backgroundColor: AppColors.surfaceElevated,
-                    backgroundImage: (user?.avatarUrl.isNotEmpty == true)
-                        ? CachedNetworkImageProvider(user!.avatarUrl)
-                        : null,
-                    child: (user?.avatarUrl.isEmpty ?? true)
-                        ? const Icon(Icons.person_rounded, size: 36, color: AppColors.textSecondary)
-                        : null,
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          user?.name ?? 'Guest Explorer',
-                          style: AppTypography.titleLarge,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                  // Banner Image Container
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        height: 95,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceElevated,
+                          image: ImageHelper.getImageProvider(user?.bannerUrl) != null
+                              ? DecorationImage(
+                                  image: ImageHelper.getImageProvider(user!.bannerUrl)!,
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          user?.email ?? 'Sign in to sync your cloud library',
-                          style: AppTypography.bodySmall,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        child: Container(
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: AppColors.primary.withValues(alpha: 0.3),
-                              width: 0.8,
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.65),
+                              ],
                             ),
                           ),
-                          child: Text(
-                            user?.membershipTier ?? 'Free Explorer',
-                            style: AppTypography.labelSmall.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      // Edit Button in top right of banner
+                      Positioned(
+                        top: 10,
+                        right: 10,
+                        child: InkWell(
+                          onTap: () => EditProfileDialog.show(context, user),
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.6),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: AppColors.surfaceGlassBorder),
                             ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.edit_rounded, size: 14, color: AppColors.primary),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Edit',
+                                  style: AppTypography.labelSmall.copyWith(
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Avatar & Details Row
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        // Avatar overlapping banner
+                        Transform.translate(
+                          offset: const Offset(0, -22),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: AppColors.surface, width: 3),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.4),
+                                  blurRadius: 8,
+                                ),
+                              ],
+                            ),
+                            child: CircleAvatar(
+                              radius: 30,
+                              backgroundColor: AppColors.surfaceElevated,
+                              backgroundImage: ImageHelper.getImageProvider(user?.avatarUrl),
+                              child: ImageHelper.getImageProvider(user?.avatarUrl) == null
+                                  ? const Icon(Icons.person_rounded, size: 32, color: AppColors.textSecondary)
+                                  : null,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 6),
+                              Text(
+                                user?.name ?? 'Guest Explorer',
+                                style: AppTypography.titleLarge,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                user?.email ?? 'Sign in to sync your cloud library',
+                                style: AppTypography.bodySmall,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (user?.phoneNumber != null && user!.phoneNumber.isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.phone_rounded, size: 12, color: AppColors.textMuted),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      user.phoneNumber,
+                                      style: AppTypography.bodySmall.copyWith(color: AppColors.textMuted),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                              const SizedBox(height: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: AppColors.primary.withValues(alpha: 0.3),
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Text(
+                                  user?.membershipTier ?? 'Free Explorer',
+                                  style: AppTypography.labelSmall.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined, color: AppColors.textSecondary),
-                    onPressed: () => _showEditProfileDialog(context, ref, user),
                   ),
                 ],
               ),
@@ -397,43 +494,6 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-        );
-      },
-    );
-  }
-
-  void _showEditProfileDialog(BuildContext context, WidgetRef ref, user) {
-    final nameController = TextEditingController(text: user?.name ?? '');
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: AppColors.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text('Edit Profile Name', style: AppTypography.titleLarge),
-          content: TextField(
-            controller: nameController,
-            decoration: const InputDecoration(labelText: 'Display Name'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted)),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (user != null && nameController.text.trim().isNotEmpty) {
-                  ref.read(authProvider.notifier).updateProfile(
-                        user.copyWith(name: nameController.text.trim()),
-                      );
-                  Navigator.pop(dialogContext);
-                }
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-              child: const Text('Save', style: TextStyle(color: Colors.black)),
-            ),
-          ],
         );
       },
     );
